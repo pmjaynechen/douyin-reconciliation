@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>抖店对账</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">抖</span>
+        <div>
+          <strong>抖店对账</strong>
+          <span>本机财务工作台</span>
+        </div>
+      </div>
+      <nav class="primary-tabs" aria-label="主要功能">
+        <button class="primary-tab selected" type="button" data-view="tasks" aria-selected="true">
+          <span>1</span>月度任务
+        </button>
+        <button class="primary-tab" type="button" data-view="import" aria-selected="false" disabled>
+          <span>2</span>数据导入
+        </button>
+        <button class="primary-tab" type="button" data-view="reconcile" aria-selected="false" disabled>
+          <span>3</span>对账工作台
+        </button>
+        <button class="primary-tab" type="button" data-view="report" aria-selected="false" disabled>
+          <span>4</span>经营报表
+        </button>
+        <button class="primary-tab" type="button" data-view="config" aria-selected="false">
+          <span>5</span>配置中心
+        </button>
+      </nav>
+      <div class="topbar-meta">
+        <span class="local-badge"><i></i>数据不离开本机</span>
+        <span class="health-text" id="healthText">正在检查服务……</span>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="task-context" id="taskContext" hidden>
+        <div class="task-context-main">
+          <button class="back-button" id="switchTaskButton" type="button" aria-label="返回月度任务">←</button>
+          <div>
+            <div class="context-title-row">
+              <h1 id="selectedTaskTitle">读取任务中……</h1>
+              <span class="sample-badge" id="selectedTaskSample" hidden>样例数据</span>
+            </div>
+            <p id="selectedTaskMeta"></p>
+          </div>
+        </div>
+        <div class="task-context-right">
+          <div class="reconcile-kpis task-context-kpis" id="reconcileKpis" hidden></div>
+          <button class="secondary-button compact-button lifecycle-button" id="taskLifecycleButton" type="button" hidden></button>
+          <span class="task-status" id="selectedTaskStatus"></span>
+        </div>
+      </section>
+
+      <section class="app-view" id="taskView">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">月度对账</p>
+            <h1>选择一个任务继续处理</h1>
+            <p>任务按店铺和月份管理，导入和对账分开进行。</p>
+          </div>
+          <div class="task-page-tools">
+            <div class="rule-summary" id="ruleSummary" aria-live="polite">
+              <span class="skeleton"></span><span class="skeleton short"></span>
+            </div>
+            <div class="task-create-anchor">
+              <button class="primary-button new-task-toggle" id="newTaskToggle" type="button" aria-expanded="false" aria-controls="newTaskDropdown">＋ 新建任务</button>
+              <div class="task-create-dropdown" id="newTaskDropdown" hidden>
+                <div class="dropdown-heading">
+                  <div>
+                    <span class="step-label">新建任务</span>
+                    <h2>建立月度对账任务</h2>
+                  </div>
+                  <button class="dropdown-close" id="closeTaskDropdown" type="button" aria-label="关闭新建任务">×</button>
+                </div>
+                <form class="compact-task-form" id="taskForm" novalidate>
+                  <label>企业主体
+                    <select name="entityId" required>
+                      <option value="">正在读取主体……</option>
+                    </select>
+                  </label>
+                  <label>抖店店铺
+                    <select name="storeId" required disabled>
+                      <option value="">请先选择企业主体</option>
+                    </select>
+                  </label>
+                  <label>对账月份
+                    <input name="period" type="month" required />
+                  </label>
+                  <button class="primary-button" type="submit">建立月度任务</button>
+                </form>
+                <div class="task-master-data-hint" id="taskMasterDataHint">
+                  <span>主体和店铺在配置中心统一维护，避免同一家店被重复命名。</span>
+                  <button class="text-button" id="manageMasterDataButton" type="button">维护主体与店铺</button>
+                </div>
+                <p class="form-message" id="formMessage" role="status" aria-live="polite"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-layout">
+          <article class="card task-list-card">
+            <div class="card-heading">
+              <div>
+                <span class="step-label">任务列表</span>
+                <h2>继续上次的工作</h2>
+              </div>
+              <button class="text-button" id="refreshButton" type="button">刷新</button>
+            </div>
+            <div id="taskLoading" class="state-box">正在读取本机任务……</div>
+            <div id="taskError" class="state-box error" hidden>
+              <strong>任务读取失败</strong>
+              <button class="secondary-button" id="retryButton" type="button">重新读取</button>
+            </div>
+            <div id="taskEmpty" class="state-box" hidden>
+              <strong>还没有对账任务</strong>
+              <span>建立正式任务，或主动载入带明确标识的样例。</span>
+              <button class="secondary-button" id="loadSampleButton" type="button">载入样例数据</button>
+              <small>只有点击后才会写入样例任务。</small>
+            </div>
+            <div class="task-list" id="taskList" hidden></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="app-view" id="importView" hidden>
+        <div class="page-heading compact-heading">
+          <div>
+            <p class="eyebrow">数据导入</p>
+            <h1>导入并检查抖店工作簿</h1>
+            <p>这里只处理文件选择、版本留存和导入质量；查看底表和对账结果请进入对账工作台。</p>
+          </div>
+        </div>
+
+        <div class="import-page-layout">
+          <article class="card upload-card">
+            <div class="card-heading">
+              <div>
+                <span class="step-label">上传文件</span>
+                <h2>选择抖店工作簿</h2>
+              </div>
+            </div>
+            <form id="uploadForm" novalidate>
+              <div class="requirement-list">
+                <span>一个 .xlsx 文件</span>
+                <span>包含订单、售后、结算、资金、成本5张表</span>
+                <span>单个文件最大50MB</span>
+              </div>
+              <label class="file-picker">
+                Excel文件
+                <input id="workbookFile" name="workbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+              </label>
+              <label>重传说明（首次可不填）
+                <input name="replacementReason" maxlength="300" placeholder="例如：补齐12月售后数据" />
+              </label>
+              <button class="primary-button" type="submit">导入并检查</button>
+              <p class="form-message" id="uploadMessage" role="status" aria-live="polite"></p>
+            </form>
+            <section class="supporting-upload-section">
+              <div class="supporting-upload-heading">
+                <div>
+                  <span class="step-label">补充资料 · 试运行</span>
+                  <h3>平台账户日/月汇总</h3>
+                </div>
+                <span class="trial-badge">模拟映射</span>
+              </div>
+              <p>用于反查逐笔流水是否漏行、漏日或余额不连续。当前不影响完成本期，取得真实抖店文件后再启用正式阻断。</p>
+              <form id="platformBalanceForm" novalidate>
+                <label class="file-picker">
+                  汇总Excel
+                  <input name="workbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+                </label>
+                <label>替换说明（首次可不填）
+                  <input name="replacementReason" maxlength="300" placeholder="例如：补齐7月2日日汇总" />
+                </label>
+                <button class="secondary-button" type="submit">导入并核对完整性</button>
+                <p class="form-message" id="platformBalanceMessage" role="status" aria-live="polite"></p>
+              </form>
+              <div id="platformBalanceImportSummary" class="supporting-import-summary"></div>
+            </section>
+            <section class="supporting-upload-section">
+              <div class="supporting-upload-heading">
+                <div>
+                  <span class="step-label">待结算跟踪 · 试运行</span>
+                  <h3>待结算订单与售后辅助资料</h3>
+                </div>
+                <span class="trial-badge">模拟映射</span>
+              </div>
+              <p>用于区分正常等待、逾期未结算、售后中、平台限制和资料不足；当前不影响完成本期。</p>
+              <form id="pendingSettlementForm" novalidate>
+                <label class="file-picker">
+                  待结算Excel
+                  <input name="workbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+                </label>
+                <label>替换说明（首次可不填）
+                  <input name="replacementReason" maxlength="300" placeholder="例如：补齐8月8日待结算订单" />
+                </label>
+                <button class="secondary-button" type="submit">导入并分类</button>
+                <p class="form-message" id="pendingSettlementMessage" role="status" aria-live="polite"></p>
+              </form>
+              <div id="pendingSettlementImportSummary" class="supporting-import-summary"></div>
+            </section>
+          </article>
+
+          <article class="card import-result-card">
+            <div class="card-heading">
+              <div>
+                <span class="step-label">最新版本</span>
+                <h2>导入结果</h2>
+              </div>
+              <button class="secondary-button compact-button" id="goToReconcileButton" type="button" hidden>进入对账工作台 →</button>
+            </div>
+            <div id="detailLoading" class="state-box compact">正在读取任务文件……</div>
+            <div id="fileEmpty" class="state-box compact" hidden>
+              <strong>还没有导入Excel</strong>
+              <span>在左侧选择文件，导入结果会显示在这里。</span>
+            </div>
+            <div id="fileResult" hidden></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="app-view" id="reconcileView" hidden>
+        <div id="reconcileEmpty" class="card state-box reconcile-empty">
+          <strong>还没有可查看的导入数据</strong>
+          <span>先完成Excel导入，再进入对账工作台。</span>
+          <button class="primary-button inline-button" id="emptyGoToImportButton" type="button">去导入数据</button>
+        </div>
+
+        <div id="reconcileContent" hidden>
+          <article class="table-workspace">
+            <nav class="secondary-tabs" id="recordTabs" aria-label="对账数据表"></nav>
+            <section class="reconcile-overview" id="reconcileOverview"></section>
+            <section class="reconciliation-pane" id="reconciliationPane" hidden>
+              <div class="reconciliation-browser" id="reconciliationBrowser"></div>
+            </section>
+            <section class="record-pane" id="recordPane" hidden>
+              <div class="record-browser" id="recordBrowser"></div>
+            </section>
+          </article>
+        </div>
+      </section>
+
+      <section class="app-view report-view" id="reportView" hidden>
+        <div class="card state-box compact" id="operatingReportLoading">正在计算当前报表准备度……</div>
+        <div class="card state-box compact error" id="operatingReportError" hidden>
+          <strong>经营报表读取失败</strong>
+          <span>请重新读取，已有对账结果不会受影响。</span>
+          <button class="secondary-button compact-button" id="retryOperatingReportButton" type="button">重新读取</button>
+        </div>
+        <div id="operatingReportContent" hidden></div>
+      </section>
+
+      <section class="app-view config-view" id="configView" hidden>
+        <div class="page-heading compact-heading config-heading">
+          <div>
+            <p class="eyebrow">配置中心</p>
+            <h1>账单或规则变了，先调整配置，不直接改历史结果</h1>
+            <p>账单模板管“怎样读文件”，对账规则管“怎样核对”，基础资料管“字段值代表什么”。</p>
+          </div>
+          <div class="configuration-guardrail">
+            <strong>发布版本不覆盖</strong>
+            <span>复制草稿 → 样例/案例测试 → 启用新版本</span>
+          </div>
+        </div>
+
+        <article class="card configuration-card">
+          <nav class="configuration-tabs" aria-label="配置类型">
+            <button class="configuration-tab selected" type="button" data-config-panel="template">账单模板</button>
+            <button class="configuration-tab" type="button" data-config-panel="rules">对账规则</button>
+            <button class="configuration-tab" type="button" data-config-panel="base-data">基础资料</button>
+          </nav>
+
+          <section class="configuration-panel" id="templateConfigPanel">
+            <div id="configurationLoading" class="state-box compact">正在读取配置……</div>
+            <div id="configurationError" class="state-box compact error" hidden>
+              <strong>配置读取失败</strong>
+              <button class="secondary-button compact-button" id="retryConfigurationButton" type="button">重新读取</button>
+            </div>
+            <div id="templateConfigurationContent" hidden></div>
+          </section>
+
+          <section class="configuration-panel" id="ruleConfigPanel" hidden>
+            <div id="ruleConfigurationContent"></div>
+          </section>
+
+          <section class="configuration-panel" id="baseDataConfigPanel" hidden>
+            <div id="baseDataConfigurationContent"></div>
+          </section>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <span>资金账单表示平台聚合账户收支，不等于企业银行流水。</span>
+      <span>单用户 · 本机数据</span>
+    </footer>
+  </body>
+</html>

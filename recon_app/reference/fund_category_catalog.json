@@ -1,0 +1,62 @@
+{
+  "catalogVersion": "external-course-candidate-v1",
+  "dataClassification": "课程资料整理出的候选字典",
+  "source": "附件3：抖店-资金流水表-（店铺维度）V3.xlsx",
+  "warning": "附件是汇总分类结果，不是逐笔资金明细；分类名称和开票方向尚未用当前抖店文件及最新税务规则确认，禁止据此自动记账或自动开票。",
+  "autoMatchEnabled": false,
+  "majorCategoryCount": 7,
+  "detailCategoryCount": 37,
+  "categories": [
+    {"majorCode": "goods", "majorName": "商品收入及退款", "items": [
+      {"code": "order_actual_settlement", "name": "订单实际结算", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "order_refund", "name": "订单退款", "direction": "outflow", "invoiceHint": "unknown"}
+    ]},
+    {"majorCode": "subsidy", "majorName": "补贴收入", "items": [
+      {"code": "platform_actual_subsidy", "name": "实际平台补贴", "direction": "income", "invoiceHint": "merchant_to_platform"},
+      {"code": "creator_subsidy", "name": "达人补贴", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "douyin_pay_subsidy", "name": "抖音支付补贴", "direction": "income", "invoiceHint": "merchant_to_platform"},
+      {"code": "monthly_pay_marketing_subsidy", "name": "抖音月付营销补贴", "direction": "income", "invoiceHint": "merchant_to_platform"},
+      {"code": "bank_subsidy", "name": "银行补贴", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "shipping_subsidy", "name": "运费补贴", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "other_platform_subsidy", "name": "其他平台补贴", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "trade_in_deduction", "name": "以旧换新抵扣", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "government_subsidy_platform_advance", "name": "政府补贴平台垫付", "direction": "income", "invoiceHint": "unknown"}
+    ]},
+    {"majorCode": "platform_fee", "majorName": "平台费用", "items": [
+      {"code": "platform_service_fee", "name": "平台服务费", "direction": "outflow", "invoiceHint": "platform_to_merchant"},
+      {"code": "commission", "name": "佣金", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "service_provider_commission", "name": "服务商佣金", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "channel_share", "name": "渠道分成", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "investment_service_fee", "name": "招商服务费", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "offsite_promotion_fee", "name": "站外推广费", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "other_share", "name": "其他分成", "direction": "outflow", "invoiceHint": "unknown"}
+    ]},
+    {"majorCode": "other_outflow", "majorName": "其他支出", "items": [
+      {"code": "consumer_compensation", "name": "消费者赔付", "direction": "outflow", "invoiceHint": "not_available"},
+      {"code": "small_payment", "name": "小额打款", "direction": "outflow", "invoiceHint": "not_available"},
+      {"code": "monthly_pay_joint_interest", "name": "抖音月付联合贴息", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "insurance_fee", "name": "权益保险", "direction": "outflow", "invoiceHint": "platform_to_merchant"},
+      {"code": "pickup_shipping_fee", "name": "取件运费", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "freight_dispute_protection", "name": "运费争议保障", "direction": "outflow", "invoiceHint": "platform_to_merchant"},
+      {"code": "remote_logistics_fee", "name": "偏远地区物流费", "direction": "outflow", "invoiceHint": "platform_to_merchant"},
+      {"code": "review_gift_deposit", "name": "评价有礼保证金缴存", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "review_gift_return", "name": "评价有礼保证金退回", "direction": "income", "invoiceHint": "unknown"},
+      {"code": "campaign_coupon_recovery", "name": "营销活动券款追回", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "refund_to_compensation_payment", "name": "普通退款转赔付打款", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "interception_fee", "name": "拦截费", "direction": "outflow", "invoiceHint": "platform_to_merchant"},
+      {"code": "delivery_fee", "name": "配送费", "direction": "outflow", "invoiceHint": "unknown"}
+    ]},
+    {"majorCode": "current_account", "majorName": "往来及账户划转", "items": [
+      {"code": "withdrawal", "name": "提现", "direction": "outflow", "invoiceHint": "not_applicable"},
+      {"code": "guarantee_deposit_recharge", "name": "保证金充值", "direction": "outflow", "invoiceHint": "not_applicable"},
+      {"code": "steward_account_recharge", "name": "管家账户充值", "direction": "outflow", "invoiceHint": "not_applicable"}
+    ]},
+    {"majorCode": "ocean_engine", "majorName": "巨量引擎及千川", "items": [
+      {"code": "ocean_engine_recharge", "name": "巨量引擎/千川充值", "direction": "outflow", "invoiceHint": "unknown"},
+      {"code": "ocean_engine_return", "name": "巨量引擎/千川返还", "direction": "income", "invoiceHint": "unknown"}
+    ]},
+    {"majorCode": "advance_receipt", "majorName": "预收款", "items": [
+      {"code": "advance_receipt", "name": "预收款", "direction": "income", "invoiceHint": "unknown"}
+    ]}
+  ]
+}

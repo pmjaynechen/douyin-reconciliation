@@ -1,0 +1,8 @@
+reconciliation.db
+reconciliation.db-shm
+reconciliation.db-wal
+app.pid
+service.log
+service-error.log
+uploads/*
+!uploads/.gitkeep

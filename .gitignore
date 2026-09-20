@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+var/*
+!var/.gitignore
+!var/uploads/
+!var/uploads/.gitkeep
+sample-data/*
+!sample-data/.gitkeep
+recovery-before-restore-*/
+*.zip

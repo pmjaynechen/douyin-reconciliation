@@ -1,0 +1,209 @@
+{
+  "meta": {
+    "datasetName": "退款构成黄金三角模拟测试数据",
+    "dataClassification": "模拟测试数据",
+    "warning": "模拟，公式来自外部课程资料，尚待真实样本确认",
+    "formulaVersion": "external-course-assumption-v1",
+    "currency": "CNY",
+    "toleranceCents": 1,
+    "rounding": "ROUND_HALF_UP_TO_CENT",
+    "formula": {
+      "refundRatio": "用户退款金额 ÷ 原订单用户实付金额",
+      "expectedPlatformSubsidyClawback": "原订单平台补贴 × 退款比例，按分四舍五入",
+      "currentRefundNet": "同子订单、同售后编号的退款资金有符号金额合计",
+      "compositionPass": "实际退用户金额与售后金额一致，且实际平台补贴追回与预计追回差额不超过1分"
+    },
+    "assumptions": [
+      "用户退款金额在本测试中指应退还消费者的用户实付部分，不含平台补贴追回。",
+      "全额退款时，用户退款金额等于原订单用户实付金额。",
+      "只计算平台补贴追回；达人补贴、抖音支付补贴、抖音月付补贴和其他补贴需要单独真实样本和规则。",
+      "本数据只用于试运行和自动化测试，不能直接启用为正式抖店规则。"
+    ],
+    "currentImplementationScope": "refund_reconciliation.py只核对退款资金净额、唯一分组和时间窗口，不核对退用户与退补贴的构成。",
+    "sourceFieldMapping": {
+      "originalSettlement": ["子订单号", "用户实付", "平台补贴", "达人补贴", "抖音支付补贴", "抖音月付营销补贴"],
+      "afterSale": ["售后单号", "商品单号", "售后状态", "退商品金额（元）"],
+      "refundSettlement": ["子订单号", "结算单类型", "结算金额"],
+      "fund": ["动帐流水号", "子订单号", "售后编号", "动账方向", "动账金额", "动账场景", "订单退款", "实际平台补贴", "实际达人补贴", "实际抖音支付补贴", "实际抖音月付营销补贴"]
+    }
+  },
+  "scenarios": [
+    {
+      "id": "GC01_FULL_REFUND_FULL_PLATFORM_CLAWBACK",
+      "title": "全额退款且平台补贴全额追回",
+      "coverageTags": ["full_refund", "platform_subsidy_full_clawback"],
+      "subOrderId": "TEST-GC-S001",
+      "originalSettlement": {"userPaidCents": 9000, "platformSubsidyCents": 1000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A001", "status": "退款成功", "userRefundCents": 9000},
+      "refundSettlementAmountCents": -10000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F001-U", "afterSaleId": "TEST-GC-A001", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -9000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F001-P", "afterSaleId": "TEST-GC-A001", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -1000, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "1", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 1000, "platformSubsidyDifferenceCents": 0, "currentNetAmountCents": -10000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "passed", "compositionStatus": "passed", "reasonCode": "full_refund_components_match"}
+    },
+    {
+      "id": "GC02_PARTIAL_REFUND_PROPORTIONAL_PLATFORM_CLAWBACK",
+      "title": "部分退款按用户退款比例计算平台补贴追回",
+      "coverageTags": ["partial_refund", "proportional_platform_subsidy"],
+      "subOrderId": "TEST-GC-S002",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A002", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -5000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F002-U", "afterSaleId": "TEST-GC-A002", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F002-P", "afterSaleId": "TEST-GC-A002", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -1000, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 1000, "platformSubsidyDifferenceCents": 0, "currentNetAmountCents": -5000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "passed", "compositionStatus": "passed", "reasonCode": "partial_refund_components_match"}
+    },
+    {
+      "id": "GC03_NET_MATCHES_BUT_COMPONENTS_WRONG",
+      "title": "净额一致但退用户和退补贴构成错误",
+      "coverageTags": ["net_match", "component_mismatch"],
+      "subOrderId": "TEST-GC-S003",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A003", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -5000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F003-U", "afterSaleId": "TEST-GC-A003", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4500, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F003-P", "afterSaleId": "TEST-GC-A003", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -500, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 500, "platformSubsidyDifferenceCents": -500, "currentNetAmountCents": -5000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "mismatch", "platformSubsidyStatus": "short", "compositionStatus": "failed", "reasonCode": "net_consistent_component_mismatch"}
+    },
+    {
+      "id": "GC04_PLATFORM_SUBSIDY_NOT_CLAWED_BACK",
+      "title": "平台补贴未追回",
+      "coverageTags": ["platform_subsidy_missing"],
+      "subOrderId": "TEST-GC-S004",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A004", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -4000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F004-U", "afterSaleId": "TEST-GC-A004", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 0, "platformSubsidyDifferenceCents": -1000, "currentNetAmountCents": -4000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "missing", "compositionStatus": "failed", "reasonCode": "platform_subsidy_not_clawed_back"}
+    },
+    {
+      "id": "GC05_PLATFORM_SUBSIDY_SHORT_CLAWBACK",
+      "title": "平台补贴少追回",
+      "coverageTags": ["platform_subsidy_short"],
+      "subOrderId": "TEST-GC-S005",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A005", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -4800,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F005-U", "afterSaleId": "TEST-GC-A005", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F005-P", "afterSaleId": "TEST-GC-A005", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -800, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 800, "platformSubsidyDifferenceCents": -200, "currentNetAmountCents": -4800, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "short", "compositionStatus": "failed", "reasonCode": "platform_subsidy_short_clawback"}
+    },
+    {
+      "id": "GC06_PLATFORM_SUBSIDY_EXCESS_CLAWBACK",
+      "title": "平台补贴多追回",
+      "coverageTags": ["platform_subsidy_excess"],
+      "subOrderId": "TEST-GC-S006",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A006", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -5200,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F006-U", "afterSaleId": "TEST-GC-A006", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F006-P", "afterSaleId": "TEST-GC-A006", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -1200, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 1200, "platformSubsidyDifferenceCents": 200, "currentNetAmountCents": -5200, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "excess", "compositionStatus": "failed", "reasonCode": "platform_subsidy_excess_clawback"}
+    },
+    {
+      "id": "GC07_NO_PLATFORM_SUBSIDY",
+      "title": "原订单无平台补贴",
+      "coverageTags": ["no_platform_subsidy"],
+      "subOrderId": "TEST-GC-S007",
+      "originalSettlement": {"userPaidCents": 10000, "platformSubsidyCents": 0, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A007", "status": "退款成功", "userRefundCents": 5000},
+      "refundSettlementAmountCents": -5000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F007-U", "afterSaleId": "TEST-GC-A007", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -5000, "component": "user_refund"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 0, "actualPlatformSubsidyClawbackCents": 0, "platformSubsidyDifferenceCents": 0, "currentNetAmountCents": -5000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "passed", "compositionStatus": "passed", "reasonCode": "no_platform_subsidy_no_clawback"}
+    },
+    {
+      "id": "GC08_INFLUENCER_SUBSIDY_ONLY",
+      "title": "只有达人补贴时不套用平台补贴公式",
+      "coverageTags": ["influencer_subsidy_only", "do_not_misclassify_other_subsidy"],
+      "subOrderId": "TEST-GC-S008",
+      "originalSettlement": {"userPaidCents": 10000, "platformSubsidyCents": 0, "influencerSubsidyCents": 2000, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A008", "status": "退款成功", "userRefundCents": 5000},
+      "refundSettlementAmountCents": -6000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F008-U", "afterSaleId": "TEST-GC-A008", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -5000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F008-I", "afterSaleId": "TEST-GC-A008", "scene": "退款-订单退款触发-退达人补贴", "direction": "出账", "signedAmountCents": -1000, "component": "influencer_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 0, "actualPlatformSubsidyClawbackCents": 0, "platformSubsidyDifferenceCents": 0, "currentNetAmountCents": -6000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "passed", "compositionStatus": "needs_separate_rule", "reasonCode": "influencer_subsidy_rule_pending"}
+    },
+    {
+      "id": "GC09_OTHER_SUBSIDY_ONLY",
+      "title": "只有其他补贴时不套用平台补贴公式",
+      "coverageTags": ["other_subsidy_only", "do_not_misclassify_other_subsidy"],
+      "subOrderId": "TEST-GC-S009",
+      "originalSettlement": {"userPaidCents": 10000, "platformSubsidyCents": 0, "influencerSubsidyCents": 0, "otherSubsidyCents": 1500},
+      "afterSale": {"afterSaleId": "TEST-GC-A009", "status": "退款成功", "userRefundCents": 5000},
+      "refundSettlementAmountCents": -5750,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F009-U", "afterSaleId": "TEST-GC-A009", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -5000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F009-O", "afterSaleId": "TEST-GC-A009", "scene": "退款-订单退款触发-退其他补贴", "direction": "出账", "signedAmountCents": -750, "component": "other_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 0, "actualPlatformSubsidyClawbackCents": 0, "platformSubsidyDifferenceCents": 0, "currentNetAmountCents": -5750, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "passed", "compositionStatus": "needs_separate_rule", "reasonCode": "other_subsidy_rule_pending"}
+    },
+    {
+      "id": "GC10_ONE_CENT_BOUNDARY",
+      "title": "平台补贴追回差1分为容差边界",
+      "coverageTags": ["one_cent_boundary", "tolerance"],
+      "subOrderId": "TEST-GC-S010",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A010", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -4999,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F010-U", "afterSaleId": "TEST-GC-A010", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F010-P", "afterSaleId": "TEST-GC-A010", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -999, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 999, "platformSubsidyDifferenceCents": -1, "currentNetAmountCents": -4999, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "passed", "compositionStatus": "passed", "reasonCode": "one_cent_within_tolerance"}
+    },
+    {
+      "id": "GC11_TWO_CENTS_FAIL",
+      "title": "平台补贴追回差2分失败",
+      "coverageTags": ["two_cents_fail", "tolerance"],
+      "subOrderId": "TEST-GC-S011",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A011", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -4998,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F011-U", "afterSaleId": "TEST-GC-A011", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F011-P", "afterSaleId": "TEST-GC-A011", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -998, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": 998, "platformSubsidyDifferenceCents": -2, "currentNetAmountCents": -4998, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "passed", "platformSubsidyStatus": "short", "compositionStatus": "failed", "reasonCode": "two_cents_exceeds_tolerance"}
+    },
+    {
+      "id": "GC12_MISSING_AFTER_SALE",
+      "title": "缺少售后明细",
+      "coverageTags": ["missing_after_sale"],
+      "subOrderId": "TEST-GC-S012",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": null,
+      "refundSettlementAmountCents": -5000,
+      "fundRows": [
+        {"transactionId": "TEST-GC-F012-U", "afterSaleId": "TEST-GC-A012", "scene": "退款-结算后退款-退用户", "direction": "出账", "signedAmountCents": -4000, "component": "user_refund"},
+        {"transactionId": "TEST-GC-F012-P", "afterSaleId": "TEST-GC-A012", "scene": "退款-订单退款触发-退补贴", "direction": "出账", "signedAmountCents": -1000, "component": "platform_subsidy_clawback"}
+      ],
+      "expected": {"refundRatio": null, "expectedPlatformSubsidyClawbackCents": null, "actualPlatformSubsidyClawbackCents": 1000, "platformSubsidyDifferenceCents": null, "currentNetAmountCents": -5000, "currentNetDifferenceCents": 0, "currentNetStatus": "matched", "userRefundStatus": "not_calculable", "platformSubsidyStatus": "not_calculable", "compositionStatus": "not_calculable", "reasonCode": "missing_after_sale_record"}
+    },
+    {
+      "id": "GC13_MISSING_FUND_ROWS",
+      "title": "缺少退款资金明细",
+      "coverageTags": ["missing_fund"],
+      "subOrderId": "TEST-GC-S013",
+      "originalSettlement": {"userPaidCents": 8000, "platformSubsidyCents": 2000, "influencerSubsidyCents": 0, "otherSubsidyCents": 0},
+      "afterSale": {"afterSaleId": "TEST-GC-A013", "status": "退款成功", "userRefundCents": 4000},
+      "refundSettlementAmountCents": -5000,
+      "fundRows": [],
+      "expected": {"refundRatio": "0.5", "expectedPlatformSubsidyClawbackCents": 1000, "actualPlatformSubsidyClawbackCents": null, "platformSubsidyDifferenceCents": null, "currentNetAmountCents": null, "currentNetDifferenceCents": null, "currentNetStatus": "missing_fund", "userRefundStatus": "not_calculable", "platformSubsidyStatus": "not_calculable", "compositionStatus": "not_calculable", "reasonCode": "missing_refund_fund_rows"}
+    }
+  ]
+}
